@@ -51,6 +51,7 @@ new_bnet<-function(variables,adj.mat=NULL){
 #' @examples
 #' bnet1<-new_bnet(c("a","b","c","d"))
 #' variables(bnet1)
+#' @export
 variables<-function(object) UseMethod("variables",object)
 
 
@@ -418,6 +419,7 @@ is.bnet <- function(x){
 #' bnet2 <- as.bnet(mat)
 #' bnet3 <- as.bnet(3*mat)
 #' bnet4 <- as.bnet(formula)
+#' @export
 as.bnet<-function(x,...){
   
   if (inherits(x,what= "bnet")){
