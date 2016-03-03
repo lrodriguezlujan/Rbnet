@@ -511,7 +511,7 @@ BIC.bnet <- function(object, data, ... ){
 #'@param x a bnet object
 #'@return positive number, the dimension of \code{x}
 #'@export
-dim.bnet<-function(x){
+dim.bnet <- function(x){
   if (!is.fitted.bnet(x)){
     warning("bnet object is not fitted, impossible to compute dimension")
     return(NULL)
@@ -527,9 +527,11 @@ dim.bnet<-function(x){
 #' 
 #' @param x a bnet object
 #' @return a list with at least component \code{nodes} and \code{arcs}
+#' 
+#' @aliases as.COSA.bnet
 #' @export
-as.COSA.bnet<- function(x){
-  L<-list()
+as.list.bnet <- function(x){
+  L <- list()
   L$nodes <- variables(x)
   L$mins <- sapply(x$variables,function(a){
     return(lower(a$prob))
@@ -549,14 +551,14 @@ as.COSA.bnet<- function(x){
 #' @param N number of points 
 #' @param MIN 
 #' @export
-marginal.bnet<-function(node,object,N=1000,MIN=0){
-  bmop<-object$variables[[node]]$marginal
-  if (is.null(bmop)){
-  return(list(x=c(0,1),y=c(1,1)))  
+marginal.bnet <- function(node, object, N=1000, MIN = 0){
+  bmop <- object$variables[[node]]$marginal
+  if (is.null(bmop)) {
+    return(list(x = c(0,1),y = c(1,1)))  
   }
-  x<-lower(bmop)+(0:(N-1))*(upper(bmop)-lower(bmop))/(N-1)
-  y<- evaluate(x,bmop,MIN=MIN)
-  return(list(x=x,y=y))
+  x <- lower(bmop) + (0:(N-1)) * (upper(bmop) - lower(bmop)) / (N-1)
+  y <- evaluate(x,bmop,MIN = MIN)
+  return(list(x = x,y = y))
  }
 
 

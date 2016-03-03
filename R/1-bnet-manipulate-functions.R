@@ -127,21 +127,27 @@ delete_arc.bnet<-function(object,from,to,data=NULL,...){
 #' plot(bnet)
 #' bnet<-delete_node.bnet(bnet,"1")
 #' plot(bnet)
-delete_node.bnet<-function(object,node,data=NULL,...){
-  var<-variables.bnet(object)
-  if (!(node %in% var)){
-    warning("node is note present in the network, original object is returned")
+delete_node.bnet <- function(object,node,data=NULL, ...){
+  # Check that node is present in the bn
+  var <- variables.bnet(object)
+  if (!(node %in% var)) {
+    warning("node is not present in the network, original object is returned")
     return(object)
   }
-  child<-child.bnet(object = object,node)
-  object$variables[[node]]<-NULL
-  for (a in child){
-    object$variables[[a]]$parents<-object$variables[[a]]$
-      parents[object$variables[[a]]$parents!=node]
+  
+  # Get node children
+  child <- child.bnet(object = object,node)
+  object$variables[[node]] <- NULL
+  
+  # Remove itself from parent list
+  for (a in child) {
+    object$variables[[a]]$parents <- object$variables[[a]]$parents[object$variables[[a]]$parents != node]
   }
-  object$info$fitted<-F
-  if (!is.null(data)){
-   object<-fit.bnet(object = object,nodes=child,data,...)
+  
+  # Net is not fitted anymore
+  object$info$fitted <- F
+  if (!is.null(data)) {
+   object < -fit.bnet(object = object,nodes = child,data,...)
   }
   return(object)
   
@@ -174,18 +180,63 @@ orden.bnet<-function(object){
 #' @param object an bnet object
 #' @return an bnet object with marginal computed by integration
 #' @export
-compute_marginal.bnet<- function(object){
-  object<-orden.bnet(object)
-  for (a in variables(object)){
+compute_marginal.bnet <- function(object){
+  object <-orden.bnet(object)
+  for (a in variables(object)) {
+    # Compute marginal for each variable
+    mopC <- object$variables[[a]]$prob
+    mop <- new_bmop(knots = mopC$knots[MARGIN],order = mopC$order[MARGIN])
     
-    mopC<- object$variables[[a]]$prob
-    mop<-new_bmop(knots = mopC$knots[MARGIN],order = mopC$order[MARGIN])
-    
-    C<-integration_constants(bmop = mopC)
-    c<-integration_constants(bmop=mop)
-    mop$ctrpoints<-apply(C*mopC$ctrpoints,MARGIN = MARGIN,FUN = sum)
-    mop$ctrpoints<-mop$ctrpoints/c
+    C <- integration_constants(bmop = mopC)
+    c <- integration_constants(bmop = mop)
+    mop$ctrpoints <- apply(C*mopC$ctrpoints,MARGIN = MARGIN,FUN = sum)
+    mop$ctrpoints <- mop$ctrpoints/c
     
   }
+}
+
+#' Collapses de bnet removing evidence nodes
+#' 
+#' Removes the evidence nodes and update the remaining unsetted nodes
+#' 
+#' @param bn A fitted bnet object
+#' @param evidence A named list with evidence values
+#' 
+#' @return A bnet
+#' @export
+collapse.bnet <- function(bn, evidence){
   
+  # Check Bn is...
+  if (!is.bnet(bn))
+    stop("First argument is not an bnet object")
+  
+  if (!is.fitted.bnet(bn))
+    stop("Bnet is not fitted")
+  
+  # Remove unused evidences
+  vars <- variables(bn)
+  evidence <- evidence[ names(evidence) %in% vars ]
+  
+  # variables not in evidence
+  not.in.evidence <- vars[!(vars %in% names(evidence))]
+  
+  # Same process for each free variable
+  for (var in not.in.evidence ) {
+    # Get var.evidence
+    var.evidence <- evidence[bn$variables[[var]]$parents]
+    # Remove null
+    var.evidence <- var.evidence[ !vapply(var.evidence, is.null, FUN.VALUE = logical(1)) ]
+    
+    if (length(var.evidence) > 0) {
+      # Indexes 
+      # +1: position 0 is reserved for the var. itself
+      var.pos <- vapply(names(var.evidence), function(x){which(bn$variables[[var]]$parents == x) + 1}, FUN.VALUE = numeric(1) )
+      # Update mop
+      bn$variables[[var]]$prob <- 
+        Rbmop::put_evidence.bmop(bn$variables[[var]]$prob, as.numeric(var.evidence), evd.pos = var.pos, normalize = F)
+      # Remove evidence parents
+      bn$variables[[var]]$parents <- setdiff(bn$variables[[var]]$parents, names(var.evidence))  
+    }
+  }
+  return(bn)
 }
