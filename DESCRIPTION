@@ -5,11 +5,15 @@ Version: 1.0
 Date: 2015-04-07
 Author: Gherardo Varando
 Maintainer: <gherardo.varando@gmail.com>
-Description: Define and Manage Bayesian Networks, especially with bmop densities estimations
+Description: Define and Manage Bayesian Networks, especially with bmop densities
+    estimations
 License: GPL-3
-Imports: cubature,
-         Rbmop
-Suggests: bnlearn,
-          graph,
-          MASS,
-          parallel
+Imports:
+    cubature,
+    Rbmop
+Suggests:
+    bnlearn,
+    graph,
+    MASS,
+    parallel
+RoxygenNote: 5.0.1

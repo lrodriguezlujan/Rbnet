@@ -534,10 +534,10 @@ as.list.bnet <- function(x){
   L <- list()
   L$nodes <- variables(x)
   L$mins <- sapply(x$variables,function(a){
-    return(lower(a$prob))
+    return(Rbmop::lower.bmop(a$prob))
     })
   L$maxs  <- sapply(x$variables,function(a){
-    return(upper(a$prob))
+    return(Rbmop::upper.bmop(a$prob))
   }) 
   L$arcs  <- arcs(x)
   return(L)
