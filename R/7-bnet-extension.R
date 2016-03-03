@@ -18,6 +18,9 @@ full_conditioned.bnet <- function(bn,
   if (!is.bnet(bn))
     stop("First argument is not an bnet object")
   
+  if (!is.fitted.bnet(bn))
+    stop("Bnet is not fitted")
+  
   # Check node in variables
   if (!(node %in% variables(bn)))
     stop("Node not in model variables")
@@ -89,6 +92,7 @@ full_conditioned.bnet <- function(bn,
 #' @export
 mcmc_sampler.bnet <- function(bn,
                               evidence,
+                              vars = names(bn$variables),
                               N = 1,
                               burn.in = 100,
                               thinnin = 10) {
@@ -96,37 +100,47 @@ mcmc_sampler.bnet <- function(bn,
   if (!is.bnet(bn))
     stop("First argument is not an bnet object")
   
+  if (!is.fitted.bnet(bn))
+    stop("Bnet is not fitted")
+  
   # Check evidence
   evidence <- as.list(evidence)
   if (is.null(names(evidence)))
     warning("Evidence without names - will be ignored")
 
   # Get model variables, to generate and in evidence
-  variables <- names(bn$variables)
-  variables.in.evidence <- variables[variables %in% names(evidence)]
-  variables.not.evidence <- variables[ !(variables %in% names(evidence)) ]
+  variables.in.evidence <- vars[vars %in% names(evidence)]
+  variables.not.evidence <- vars[ !(vars %in% names(evidence)) ]
   evidence <- evidence[variables.in.evidence]
   
+  # Collapse net
+  bn.collapsed <- collapse.bnet(bn, evidence)  
+  
   # Preprocess to speed up the process. Looks for isolated undetermined values that dont need MCMC
-  isolated.vars <- mcmc_sampler.bnet.isolated(bn, evidence, variables.not.evidence)
+  isolated.vars <- mcmc_sampler.bnet.isolated(bn.collapsed, evidence, variables.not.evidence)
   
   # Remove isolated from variables.not.ev
   variables.not.evidence <- setdiff(variables.not.evidence, isolated.vars)
   
   # Prealloc DF
-  df <- as.data.frame( matrix(NA, ncol = length(bn$variables), nrow = N) )
+  df <- as.data.frame( matrix(NA, ncol = length(vars), nrow = N) )
   colnames(df) <- c(variables.in.evidence, isolated.vars, variables.not.evidence)
   
   # Initialize unassigned variables
   init.values <- vapply(variables.not.evidence, function(node){
-    node.min <- min(bn$variables[[node]]$prob$knots[[1]])
-    node.max <- max(bn$variables[[node]]$prob$knots[[1]])
+    node.min <- min(bn.collapsed$variables[[node]]$prob$knots[[1]])
+    node.max <- max(bn.collapsed$variables[[node]]$prob$knots[[1]])
     return(runif(1, min = node.min, max = node.max))
   }, FUN.VALUE = numeric(1))
   
+  # Compute isolated functions
+  isolated.funcs <- lapply(isolated.vars, function(node){
+    return(full_conditioned.bnet(bn.collapsed,node,evidence,normalize = F))
+  })
+  names(isolated.funcs) <- isolated.vars
+  
   # Sample isolated values
-  isolated.values <- vapply(isolated.vars, function(node){
-                            f <- full_conditioned.bnet(bn,node,evidence,normalize = F)
+  isolated.values <- vapply(isolated.funcs, function(f){
                             return(metropolisSampler_auxiliar( f$f, min = f$min, max = f$max ))
                             }, FUN.VALUE = numeric(1))
   
@@ -139,7 +153,9 @@ mcmc_sampler.bnet <- function(bn,
     # Select a node to be upodated at random
     node.to.update <- sample( variables.not.evidence, 1)
     # Compute full conditioned
-    f <- full_conditioned.bnet(bn,node.to.update,current.state,normalize = F)
+    f <- full_conditioned.bnet(bn.collapsed, 
+                               node.to.update, 
+                               current.state,normalize = F)
     # Generate sample
     current.state[[node.to.update]] <- metropolisSampler_auxiliar( f$f, min = f$min, max = f$max )
   }
@@ -152,15 +168,16 @@ mcmc_sampler.bnet <- function(bn,
         df[ floor(i/thinnin) + 1  ,] <- current.state
         
         # Isolated - update current state
-        current.state[isolated.vars] <- vapply(isolated.vars, function(node){
-          f <- full_conditioned.bnet(bn,node,evidence,normalize = F)
+        current.state[isolated.vars] <- vapply(isolated.funcs, function(f){
           return(metropolisSampler_auxiliar( f$f, min = f$min, max = f$max ))
         }, FUN.VALUE = numeric(1))
       }
+      
       # Select a node to be upodated at random
       node.to.update <- sample( variables.not.evidence, 1)
       # Compute full conditioned
-      f <- full_conditioned.bnet(bn,node.to.update,current.state,normalize = F)
+      f <- full_conditioned.bnet(bn.collapsed,
+                                 node.to.update,current.state,normalize = F)
       # Generate sample
       current.state[[node.to.update]] <- metropolisSampler_auxiliar( f$f, min = f$min, max = f$max )
     }
