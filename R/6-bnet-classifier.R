@@ -5,15 +5,15 @@
 #' Learn a multi net classifier unsing bnet, in particular learn a model
 #' where for every class value a bnet object is estimated. 
 #' As particular case naive Bayes (\code{bnets=NULL}).
-#' @param targets
-#' @param predictors
+#' @param targets Target variables
+#' @param predictors Predictor variables
 #' @param prior string, NULL, or vector of positive numbers
 #' @param data data set of observations
 #' @param bnets optionally a list of bnet object, one for each class value
 #' @return a classifier_bnet object
 #' @export
-classifier_bnet<-function(formula=NULL,targets,predictors,prior=NULL,data=NULL
-                          ,bnets=NULL,object=NULL,...){
+classifier_bnet<-function(formula=NULL, targets, predictors, prior=NULL, data=NULL
+                          , bnets=NULL, object=NULL, ...){
   
   if (inherits(formula,"formula")){
     targets<-as.character(formula[[2]])
@@ -109,7 +109,7 @@ predict.bnetClassifier<-function(object,newdata,log.odds=F,...){
 #'
 #' @param x a bnetClassifier object
 #' @param predictor the name of one of the predictor
-#' @param ... other parameters for compatibility
+#' @param \dots other parameters for compatibility
 #' @return invisible()
 #' @export 
 densplot.bnetClassifier<-function(x,predictor=NULL,...){
@@ -144,8 +144,8 @@ return(invisible())
 
 #' Classifier One vs All 
 #' 
-#' @param target
-#' @param predictors
+#' @param target Target variables
+#' @param predictors Predictor variables
 #' @param data data set of observations
 #' @return a multiclass_bnet object
 #' @export

@@ -1,7 +1,7 @@
 
 #' MSE function
-#' @param x
-#' @param y
+#' @param x x
+#' @param y y
 #' @export
 MSE<-function(x,y){
   N<-dim(x)
@@ -11,8 +11,8 @@ MSE<-function(x,y){
 }
 
 #' ARE function
-#' @param x
-#' @param y
+#' @param x x
+#' @param y y
 #' @export
 ARE<-function(x,y){
   N<-dim(x)

@@ -47,7 +47,7 @@ naive_bayes.bnet<-function(formula=NULL,targets=NULL,predictors=NULL,data=NULL,
 #' Discriminative model structure generator (inverso of naive bayes)
 #' @param targets vector of names for targets variables
 #' @param predictors vector of names for predictor variables
-#' @param data
+#' @param data Training data
 #' @export
 discriminative.bnet<-function(targets,predictors,data=NULL,...){
   cl<-match.call()
