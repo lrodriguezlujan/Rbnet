@@ -455,7 +455,9 @@ predict.bnet<-function(object,newdata,targets=NULL,predictors=NULL,
 #'
 #' @return A data frame with one sample per row (Columns named)
 #' @export
-sample.bnet <- function(bn, evidence = NULL, N = 1,
+sample.bnet <- function(bn, 
+                        nodes = variables(bn),
+                        evidence = NULL, N = 1,
                         burn.in = 100,
                         thinnin = 10,
                         mc.cores = getOption("mc.cores", default = 4)){
@@ -475,13 +477,20 @@ sample.bnet <- function(bn, evidence = NULL, N = 1,
       evidence <- NULL
     }
   }
+  
+  # Remove nodes from bn
+  ignore <- setdiff(variables(bn), nodes)
+  #if (length(toremove) > 0) {
+  #  # FIXME: Fast - not clean - not correct .
+  #  bn$variables[toremove] <- NULL
+  #}
 
   # If no evidence is provided use forward sampling
   if (length(evidence) == 0)
     return(forwardSampler.bnet(bn, N = N))
 
   # Get model variables, to generate and in evidence
-  vars <- variables(bn)
+  vars <- nodes
   variables.in.evidence <- vars[vars %in% names(evidence)]
   variables.not.evidence <- vars[ !(vars %in% names(evidence)) ]
   evidence <- evidence[variables.in.evidence]
@@ -492,9 +501,12 @@ sample.bnet <- function(bn, evidence = NULL, N = 1,
   # Look for remaining connected components (and detect isolated nodes)
   l <- as.list(bn)
   isolated.nodes <- l$nodes[!(l$nodes %in% unique(as.character(l$arcs)))]
-  g <- igraph::graph_from_edgelist(l$arcs, directed = T)
+  g <- igraph::graph_from_edgelist(matrix(l$arcs,ncol = 2), directed = T)
   # Add isolated nodes
   g <- igraph::add.vertices(g, length(isolated.nodes), name = isolated.nodes)
+  # Remove vertices to ignore
+  g <- igraph::delete_vertices(g, ignore)
+  
   # Find components
   g.components <- igraph::components( g , mode = "weak")
   # Generate samples for each component
@@ -751,7 +763,7 @@ full_conditioned.bnet <- function(bn,
 ##
 #'@noRd
 #'@importFrom truncnorm rtruncnorm dtruncnorm
-metropolisSampler_auxiliar <- function(f, burn.in = 100, min = -Inf, max = Inf, sd = 2 ){
+metropolisSampler_auxiliar <- function(f, burn.in = 100, min = -Inf, max = Inf, sd = 1 ){
 
   # Initial value
   x.old <- runif(1,min,max)
