@@ -604,7 +604,7 @@ mcmcSampler.bnet <- function(bn,
                               evidence,
                               vars = names(bn$variables),
                               N = 1,
-                              burn.in = 100,
+                              burn.in = 200,
                               thinnin = 10,
                               collapse = F) {
   # Check Bn is...
@@ -623,6 +623,11 @@ mcmcSampler.bnet <- function(bn,
   variables.in.evidence <- vars[vars %in% names(evidence)]
   variables.not.evidence <- vars[ !(vars %in% names(evidence)) ]
   evidence <- evidence[variables.in.evidence]
+  # Special case: just one var
+  if (length(variables.not.evidence) == 1) {
+    burn.in <- 1
+    thinnin <- 1
+  }
 
   # Collapse net
   if (collapse)
@@ -643,10 +648,13 @@ mcmcSampler.bnet <- function(bn,
   current.state <- as.list(c(evidence, init.values))
   names(current.state) <- c(variables.in.evidence, variables.not.evidence)
 
+  last.updated <- NULL
+  
   # Burnin
   for (i in 1:burn.in) {
     # Select a node to be upodated at random
-    node.to.update <- sample( variables.not.evidence, 1)
+    node.to.update <- sample( setdiff(variables.not.evidence,last.updated), 1)
+    last.updated <- node.to.update
     # Compute full conditioned
     f <- full_conditioned.bnet(bn,
                                node.to.update,
@@ -763,7 +771,7 @@ full_conditioned.bnet <- function(bn,
 ##
 #'@noRd
 #'@importFrom truncnorm rtruncnorm dtruncnorm
-metropolisSampler_auxiliar <- function(f, burn.in = 100, min = -Inf, max = Inf, sd = 1 ){
+metropolisSampler_auxiliar <- function(f, burn.in = 250, min = -Inf, max = Inf, sd = 1 ){
 
   # Initial value
   x.old <- runif(1,min,max)
